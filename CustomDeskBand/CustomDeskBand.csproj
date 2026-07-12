@@ -78,7 +78,11 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config">
+    <None Include="App.config" />
+    <None Include="install.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="uninstall.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

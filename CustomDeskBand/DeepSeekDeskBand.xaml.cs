@@ -31,7 +31,7 @@ namespace CustomDeskBand
                 _service = new DeepSeekService();
                 _tracker = new BalanceTracker();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 SetSingle("配置错误");
                 return;
