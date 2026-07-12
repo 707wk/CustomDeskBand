@@ -16,7 +16,7 @@ Windows 10 任务栏 DeskBand 工具集，在任务栏上直接显示 **DeepSeek
 - 余额与当日消耗分两行显示
 - 鼠标悬停查看总余额、赠送余额、充值余额详情
 - 自动记录每日基准余额，充值后智能校正消耗统计
-- 状态持久化至 `%AppData%\CustomDeskBand\balance_tracker.json`
+- API Key 与余额状态分别持久化至 `%AppData%\CustomDeskBand\` 下的 `apikey.json` 和 `balance_tracker.json`
 
 ### 电池电量
 
@@ -50,6 +50,8 @@ Windows 10 任务栏 DeskBand 工具集，在任务栏上直接显示 **DeepSeek
 ```
 
 > 在 [DeepSeek 开放平台](https://platform.deepseek.com/api_keys) 获取 API Key。
+>
+> **首次配置后**，API Key 会自动保存到 `%AppData%\CustomDeskBand\apikey.json`，之后更新 DLL 版本无需重新配置。
 
 ### 3. 安装
 
@@ -74,6 +76,8 @@ CustomDeskBand/
 ├── Services/
 │   ├── DeepSeekService.cs      # DeepSeek API 服务
 │   └── BalanceTracker.cs       # 余额日耗追踪器
+├── Properties/
+│   └── AssemblyInfo.cs         # 程序集信息
 ├── install.bat                 # 安装脚本
 └── uninstall.bat               # 卸载脚本
 ```
@@ -88,7 +92,7 @@ CustomDeskBand/
 
 ## 从源码编译
 
-用 Visual Studio 2017+ 打开 `CustomDeskBand.slnx`，**Release** 模式编译即可。
+用 Visual Studio 2022 打开 `CustomDeskBand.slnx`，**Release** 模式编译即可。
 
-编译产物在 `bin\Release\`，之后编辑其中的 `CustomDeskBand.dll.config` 填入 API Key，再运行 `install.bat`。
+编译产物在 `bin\Release\net472\`，之后编辑其中的 `CustomDeskBand.dll.config` 填入 API Key，再运行 `install.bat`。
 
