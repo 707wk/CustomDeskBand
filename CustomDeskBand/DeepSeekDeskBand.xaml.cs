@@ -37,8 +37,20 @@ namespace CustomDeskBand
                 return;
             }
 
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
-            _timer.Tick += async (s, e) => await RefreshAsync();
+            // 对齐到下一个5分钟整点 (:00, :05, :10, ...)
+            var now = DateTime.Now;
+            var next5Min = ((now.Minute / 5) + 1) * 5;
+            var nextTick = now.Date.AddHours(now.Hour).AddMinutes(next5Min);
+            var initialDelay = nextTick - now;
+            if (initialDelay <= TimeSpan.Zero) initialDelay = TimeSpan.FromMinutes(5);
+
+            _timer = new DispatcherTimer { Interval = initialDelay };
+            _timer.Tick += async (s, e) =>
+            {
+                if (_timer.Interval != TimeSpan.FromMinutes(5))
+                    _timer.Interval = TimeSpan.FromMinutes(5);
+                await RefreshAsync();
+            };
             _timer.Start();
 
             Loaded += async (s, e) => await RefreshAsync();

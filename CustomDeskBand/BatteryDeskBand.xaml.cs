@@ -35,8 +35,20 @@ namespace CustomDeskBand
             Options.Title = "电池电量";
             Options.MinHorizontalSize = new CSDeskBand.Size(width: 62, 40);
 
-            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
-            _timer.Tick += (s, e) => RefreshBattery();
+            // 对齐到下一个30秒整点 (:00, :30)
+            var now = DateTime.Now;
+            var next30Sec = ((now.Second / 30) + 1) * 30;
+            var nextTick = now.Date.AddHours(now.Hour).AddMinutes(now.Minute).AddSeconds(next30Sec);
+            var initialDelay = nextTick - now;
+            if (initialDelay <= TimeSpan.Zero) initialDelay = TimeSpan.FromSeconds(30);
+
+            _timer = new DispatcherTimer { Interval = initialDelay };
+            _timer.Tick += (s, e) =>
+            {
+                if (_timer.Interval != TimeSpan.FromSeconds(30))
+                    _timer.Interval = TimeSpan.FromSeconds(30);
+                RefreshBattery();
+            };
             _timer.Start();
 
             Loaded += (s, e) => RefreshBattery();
