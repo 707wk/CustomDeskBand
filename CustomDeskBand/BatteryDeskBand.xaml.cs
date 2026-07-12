@@ -33,7 +33,7 @@ namespace CustomDeskBand
             InitializeComponent();
 
             Options.Title = "电池电量";
-            Options.MinHorizontalSize = new CSDeskBand.Size(56, 40);
+            Options.MinHorizontalSize = new CSDeskBand.Size(width: 62, 40);
 
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
             _timer.Tick += (s, e) => RefreshBattery();
