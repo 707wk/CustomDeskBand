@@ -72,9 +72,9 @@ namespace CustomDeskBand.Services
                 if (currentBalance > _state.LastBalance)
                 {
                     // 充值了：将基准上调充值金额，保持消耗统计准确
-                    // newBaseline = currentBalance - consumedAmount
+                    // newBaseline = currentBalance + consumedAmount
                     // 等价于：newBaseline = oldBaseline + rechargeAmount
-                    _state.DailyBaseline = currentBalance - _state.ConsumedAmount;
+                    _state.DailyBaseline = currentBalance + _state.ConsumedAmount;
                 }
 
                 // 计算消耗金额
