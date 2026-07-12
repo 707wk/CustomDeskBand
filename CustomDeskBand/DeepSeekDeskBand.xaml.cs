@@ -50,8 +50,6 @@ namespace CustomDeskBand
 
             try
             {
-                SetSingle("查询中...");
-
                 var result = await _service.GetBalanceAsync();
 
                 if (result?.BalanceInfos != null && result.BalanceInfos.Length > 0)
