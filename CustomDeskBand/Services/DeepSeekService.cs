@@ -36,6 +36,11 @@ namespace CustomDeskBand.Services
     /// </summary>
     public class DeepSeekService
     {
+        /// <summary>
+        /// 接口调用失败重试次数
+        /// </summary>
+        public const int APIRetryCount = 3;
+
         private static readonly HttpClient _client = new HttpClient();
         private readonly string _apiKey;
         private const string BalanceUrl = "https://api.deepseek.com/user/balance";
@@ -150,9 +155,45 @@ namespace CustomDeskBand.Services
         }
 
         /// <summary>
-        /// 异步获取账户余额
+        /// 异步获取账户余额（带重试机制）
         /// </summary>
         public async Task<DeepSeekBalanceResponse> GetBalanceAsync()
+        {
+            return await GetBalanceWithRetryAsync(APIRetryCount);
+        }
+
+        /// <summary>
+        /// 带重试机制的余额查询，采用指数退避策略
+        /// </summary>
+        private async Task<DeepSeekBalanceResponse> GetBalanceWithRetryAsync(int retryCount)
+        {
+            string lastErrorMsg = string.Empty;
+
+            for (int i = 0; i < retryCount; i++)
+            {
+                try
+                {
+                    return await GetBalanceOnceAsync();
+                }
+                catch (Exception ex)
+                {
+                    lastErrorMsg = ex.Message;
+                }
+
+                if (i == retryCount - 1)
+                    break;
+
+                // 指数退避: 1s → 2s → 4s
+                await Task.Delay((int)Math.Pow(2, i) * 1000);
+            }
+
+            throw new Exception($"查询 DeepSeek 余额失败（已重试 {retryCount} 次）: {lastErrorMsg}");
+        }
+
+        /// <summary>
+        /// 单次余额查询
+        /// </summary>
+        private async Task<DeepSeekBalanceResponse> GetBalanceOnceAsync()
         {
             var request = new HttpRequestMessage(HttpMethod.Get, BalanceUrl);
             request.Headers.Add("Authorization", $"Bearer {_apiKey}");
