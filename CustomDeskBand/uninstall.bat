@@ -1,12 +1,26 @@
 @echo off
+chcp 65001 >nul
 :: CustomDeskBand 卸载 - 右键以管理员身份运行
 cd /d "%~dp0"
 set DLL=%~dp0CustomDeskBand.dll
 set REGASM=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe
 
+echo [1/3] 关闭资源管理器...
 taskkill /f /im explorer.exe >nul 2>&1
+
+echo [2/3] 卸载 DeskBand...
 %REGASM% /u "%DLL%"
+
+echo [3/3] 重启资源管理器...
 start explorer.exe
+
+echo 清理 Windows 计划任务...
+for /l %%i in (1,1,15) do (
+    timeout /t 2 /nobreak >nul
+    schtasks /delete /tn "CreateExplorerShellUnelevatedTask" /f >nul 2>&1
+    if not errorlevel 1 goto :done
+)
+:done
 
 echo 已卸载
 pause
