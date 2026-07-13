@@ -2,9 +2,9 @@ using CSDeskBand;
 using CustomDeskBand.Services;
 using System;
 using System.Globalization;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace CustomDeskBand
@@ -54,7 +54,22 @@ namespace CustomDeskBand
             };
             _timer.Start();
 
-            Loaded += async (s, e) => await RefreshAsync();
+            Loaded += async (s, e) =>
+            {
+                // 网络恢复时自动刷新
+                NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
+                // 初始加载时立即查询
+                await RefreshAsync();
+            };
+        }
+
+        private void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityEventArgs e)
+        {
+            if (e.IsAvailable)
+            {
+                // NetworkChange 事件在后台线程触发，需封送到 UI 线程
+                Dispatcher.InvokeAsync(async () => await RefreshAsync());
+            }
         }
 
         private async System.Threading.Tasks.Task RefreshAsync()
@@ -79,6 +94,8 @@ namespace CustomDeskBand
                     // 符号 + 数字分列显示
                     BalanceSymbol.Visibility = Visibility.Visible;
                     ConsumedSymbol.Visibility = Visibility.Visible;
+                    // ConsumedLabel 可能被 SetSingle 折叠，需显式恢复
+                    ConsumedLabel.Visibility = Visibility.Visible;
                     BalanceLabel.Text = $"{cur:N1}";
                     ConsumedLabel.Text = $"¥ {state.ConsumedAmount:N1}";
                     RootGrid.ToolTip = $"总余额: ¥ {b.TotalBalance}\n" +
