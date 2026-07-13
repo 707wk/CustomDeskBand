@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace CustomDeskBand.Services
 {
@@ -14,25 +15,19 @@ namespace CustomDeskBand.Services
     /// </summary>
     public class DeepSeekBalanceInfo
     {
-        [JsonProperty("currency")]
         public string Currency { get; set; }
 
-        [JsonProperty("total_balance")]
         public string TotalBalance { get; set; }
 
-        [JsonProperty("topped_up_balance")]
         public string ToppedUpBalance { get; set; }
 
-        [JsonProperty("granted_balance")]
         public string GrantedBalance { get; set; }
     }
 
     public class DeepSeekBalanceResponse
     {
-        [JsonProperty("is_available")]
         public bool IsAvailable { get; set; }
 
-        [JsonProperty("balance_infos")]
         public DeepSeekBalanceInfo[] BalanceInfos { get; set; }
     }
 
@@ -166,7 +161,14 @@ namespace CustomDeskBand.Services
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<DeepSeekBalanceResponse>(json);
+            var settings = new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new SnakeCaseNamingStrategy()
+                }
+            };
+            return JsonConvert.DeserializeObject<DeepSeekBalanceResponse>(json, settings);
         }
     }
 }

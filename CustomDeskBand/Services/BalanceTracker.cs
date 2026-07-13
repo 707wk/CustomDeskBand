@@ -9,19 +9,14 @@ namespace CustomDeskBand.Services
     /// </summary>
     public class BalanceTrackerState
     {
-        [JsonProperty("date")]
         public string Date { get; set; }
 
-        [JsonProperty("dailyBaseline")]
         public decimal DailyBaseline { get; set; }
 
-        [JsonProperty("consumedAmount")]
         public decimal ConsumedAmount { get; set; }
 
-        [JsonProperty("lastBalance")]
         public decimal LastBalance { get; set; }
 
-        [JsonProperty("currency")]
         public string Currency { get; set; }
     }
 
