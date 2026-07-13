@@ -1,12 +1,11 @@
+using CSDeskBand;
+using CustomDeskBand.Services;
 using System;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Threading;
-using CSDeskBand;
-using CustomDeskBand.Services;
 
 namespace CustomDeskBand
 {
@@ -26,6 +25,8 @@ namespace CustomDeskBand
             Options.Title = "DeepSeek 余额";
             Options.MinHorizontalSize = new CSDeskBand.Size(56, 40);
 
+            SetSingle("加载中", "...");
+
             try
             {
                 _service = new DeepSeekService();
@@ -33,7 +34,7 @@ namespace CustomDeskBand
             }
             catch (Exception)
             {
-                SetSingle("配置错误");
+                SetSingle("配置", "错误");
                 return;
             }
 
@@ -78,8 +79,6 @@ namespace CustomDeskBand
                     // 符号 + 数字分列显示
                     BalanceSymbol.Visibility = Visibility.Visible;
                     ConsumedSymbol.Visibility = Visibility.Visible;
-                    Grid.SetColumnSpan(BalanceLabel, 1);
-                    BalanceLabel.HorizontalAlignment = HorizontalAlignment.Right;
                     BalanceLabel.Text = $"{cur:N1}";
                     ConsumedLabel.Text = $"¥ {state.ConsumedAmount:N1}";
                     RootGrid.ToolTip = $"总余额: ¥ {b.TotalBalance}\n" +
@@ -103,19 +102,26 @@ namespace CustomDeskBand
             }
             catch (Exception ex)
             {
-                SetSingle(ex.Message);
+                SetSingle("未知", "错误", ex.Message);
             }
         }
 
-        private void SetSingle(string text)
+        private void SetSingle(string firstLine, string secondLine = null, string tooltip = null)
         {
+            // 隐藏符号列，用标签显示状态文字（第二行可选）
             BalanceSymbol.Visibility = Visibility.Collapsed;
             ConsumedSymbol.Visibility = Visibility.Collapsed;
-            BalanceLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            BalanceLabel.Text = text;
-            Grid.SetColumnSpan(BalanceLabel, 2);
-            ConsumedLabel.Text = "";
-            RootGrid.ToolTip = text;
+            BalanceLabel.Text = firstLine;
+            if (secondLine != null)
+            {
+                ConsumedLabel.Visibility = Visibility.Visible;
+                ConsumedLabel.Text = secondLine;
+            }
+            else
+            {
+                ConsumedLabel.Visibility = Visibility.Collapsed;
+            }
+            RootGrid.ToolTip = tooltip ?? (secondLine != null ? $"{firstLine}{secondLine}" : firstLine);
         }
 
 

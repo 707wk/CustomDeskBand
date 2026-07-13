@@ -1,12 +1,13 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Configuration;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using System.Xml;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace CustomDeskBand.Services
 {
@@ -167,7 +168,7 @@ namespace CustomDeskBand.Services
         /// </summary>
         private async Task<DeepSeekBalanceResponse> GetBalanceWithRetryAsync(int retryCount)
         {
-            string lastErrorMsg = string.Empty;
+            ExceptionDispatchInfo lastException = null;
 
             for (int i = 0; i < retryCount; i++)
             {
@@ -177,7 +178,7 @@ namespace CustomDeskBand.Services
                 }
                 catch (Exception ex)
                 {
-                    lastErrorMsg = ex.Message;
+                    lastException = ExceptionDispatchInfo.Capture(ex);
                 }
 
                 if (i == retryCount - 1)
@@ -187,7 +188,10 @@ namespace CustomDeskBand.Services
                 await Task.Delay((int)Math.Pow(2, i) * 1000);
             }
 
-            throw new Exception($"查询 DeepSeek 余额失败（已重试 {retryCount} 次）: {lastErrorMsg}");
+            // 抛出原始异常，保留异常类型和堆栈信息，
+            // 使调用方（RefreshAsync）能正确区分 HttpRequestException / TaskCanceledException
+            lastException?.Throw();
+            throw new InvalidOperationException("Unexpected: unreachable code");
         }
 
         /// <summary>
