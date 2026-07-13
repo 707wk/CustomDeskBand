@@ -16,16 +16,16 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <!-- 电池图标 -->
+        <!-- 电池图标（高12px偶数，便于在40px任务栏中垂直居中） -->
         <Canvas x:Name="BatteryCanvas"
                 Grid.Column="0"
                 Width="24"
-                Height="13"
+                Height="12"
                 Margin="0,0,4,0">
             <!-- 电池外壳 -->
             <Rectangle x:Name="BatteryBody"
                        Width="21"
-                       Height="13"
+                       Height="12"
                        RadiusX="2"
                        RadiusY="2"
                        Stroke="White"
@@ -36,7 +36,7 @@
                        Canvas.Left="21"
                        Canvas.Top="3"
                        Width="3"
-                       Height="7"
+                       Height="6"
                        RadiusX="1"
                        RadiusY="1"
                        Fill="White" />
@@ -44,19 +44,18 @@
             <Rectangle x:Name="BatteryFill"
                        Canvas.Left="2"
                        Canvas.Top="2"
-                       Height="9"
+                       Height="8"
                        RadiusX="1"
                        RadiusY="1"
                        Fill="White" />
         </Canvas>
 
-        <!-- 百分比 -->
+        <!-- 百分比（字体在代码中设为偶数，便于水平居中） -->
         <TextBlock x:Name="PercentLabel"
                    Grid.Column="1"
                    Foreground="White"
                    FontFamily="Segoe UI, Microsoft YaHei"
                    FontWeight="Regular"
-                   FontSize="{x:Static SystemFonts.StatusFontSize}"
                    VerticalAlignment="Center"
                    Text="--%" />
     </Grid>

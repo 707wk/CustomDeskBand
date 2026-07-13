@@ -32,8 +32,12 @@ namespace CustomDeskBand
         {
             InitializeComponent();
 
+            // 向上取偶数：奇数 +1，偶数 +2，保证在40px任务栏中水平居中
+            int baseSize = (int)Math.Round(SystemFonts.StatusFontSize);
+            PercentLabel.FontSize = baseSize + (baseSize % 2 == 0 ? 2 : 1);
+
             Options.Title = "电池电量";
-            Options.MinHorizontalSize = new CSDeskBand.Size(width: 62, 40);
+            Options.MinHorizontalSize = new CSDeskBand.Size(width: 66, 40);
 
             // 对齐到下一个30秒整点 (:00, :30)
             var now = DateTime.Now;
