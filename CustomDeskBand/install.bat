@@ -14,6 +14,9 @@ echo [2/3] 注册 DeskBand...
 echo [3/3] 重启资源管理器...
 start explorer.exe
 
+echo [4/4] 清理多余的 Windows 计划任务...
+schtasks /delete /tn "CreateExplorerShellUnelevatedTask" /f >nul 2>&1
+
 echo.
 echo 完成！右键任务栏 - 工具栏 - 勾选 DeepSeek 余额
 pause
