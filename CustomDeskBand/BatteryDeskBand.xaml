@@ -6,11 +6,12 @@
                   SnapsToDevicePixels="True"
                   UseLayoutRounding="True">
 
+    <!-- 水平居中：图标+文字作为整体居中；数值不足 100% 时左右留白对称 -->
     <Grid x:Name="RootGrid"
           Background="Transparent"
+          HorizontalAlignment="Center"
           ToolTip="电池电量"
-          VerticalAlignment="Center"
-          Margin="4,0">
+          VerticalAlignment="Center">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />

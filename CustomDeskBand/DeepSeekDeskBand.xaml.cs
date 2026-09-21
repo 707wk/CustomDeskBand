@@ -23,7 +23,10 @@ namespace CustomDeskBand
             InitializeComponent();
 
             Options.Title = "DeepSeek 余额";
-            Options.MinHorizontalSize = new CSDeskBand.Size(56, 40);
+            Options.MinHorizontalSize = new CSDeskBand.Size(58, 40);
+
+            // 【试验】IsFixed：附带 DBIMF_NOGRIPPER 去掉带前 gripper 间隔（两带紧贴）；代价=带宽锁定不可拖拽
+            Options.IsFixed = true;
 
             SetSingle("加载中", "...");
 

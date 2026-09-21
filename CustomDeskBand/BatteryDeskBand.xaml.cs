@@ -37,7 +37,10 @@ namespace CustomDeskBand
             PercentLabel.FontSize = baseSize + (baseSize % 2 == 0 ? 2 : 1);
 
             Options.Title = "电池电量";
-            Options.MinHorizontalSize = new CSDeskBand.Size(width: 66, 40);
+            Options.MinHorizontalSize = new CSDeskBand.Size(width: 64, 40);
+
+            // 【试验】IsFixed：附带 DBIMF_NOGRIPPER 去掉带前 gripper 间隔（两带紧贴）；代价=带宽锁定不可拖拽
+            Options.IsFixed = true;
 
             // 对齐到下一个30秒整点 (:00, :30)
             var now = DateTime.Now;
