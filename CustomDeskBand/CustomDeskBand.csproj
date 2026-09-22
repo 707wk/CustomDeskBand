@@ -40,4 +40,9 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 嵌入 WPF 资源，供 DeepSeekDeskBand.xaml 通过 pack URI 引用 -->
+    <Resource Include="Resources\DeepSeekLogo.png" />
+  </ItemGroup>
+
 </Project>

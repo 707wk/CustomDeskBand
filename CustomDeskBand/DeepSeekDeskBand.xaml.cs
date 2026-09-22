@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace CustomDeskBand
@@ -18,26 +19,45 @@ namespace CustomDeskBand
         private readonly BalanceTracker _tracker;
         private readonly DispatcherTimer _timer;
 
+        // 最近一次计算的余额比例（0~1），带宽变化时用于重算进度条填充宽度
+        private double _ratio;
+
+        // 进度条配色（参考电池电量百分比）：≤20% 红、21%~50% 黄、>50% 绿
+        private static readonly SolidColorBrush LowBrush = CreateFrozenBrush(0xF4, 0x63, 0x43);
+        private static readonly SolidColorBrush MidBrush = CreateFrozenBrush(0xF4, 0xC5, 0x42);
+        private static readonly SolidColorBrush HighBrush = CreateFrozenBrush(0x4C, 0xCA, 0x50);
+
+        private static SolidColorBrush CreateFrozenBrush(byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
+
         public DeepSeekDeskBand()
         {
             InitializeComponent();
 
             Options.Title = "DeepSeek 余额";
-            Options.MinHorizontalSize = new CSDeskBand.Size(58, 40);
+            Options.MinHorizontalSize = new CSDeskBand.Size(90, 40);
 
             // 【试验】IsFixed：附带 DBIMF_NOGRIPPER 去掉带前 gripper 间隔（两带紧贴）；代价=带宽锁定不可拖拽
             Options.IsFixed = true;
 
-            SetSingle("加载中", "...");
+            // 带宽变化时按最新比例重算进度条填充宽度
+            ProgressTrack.SizeChanged += (s, e) =>
+                ProgressFill.Width = Math.Max(0, ProgressTrack.ActualWidth * _ratio);
+
+            SetSingle("加载中");
 
             try
             {
                 _service = new DeepSeekService();
                 _tracker = new BalanceTracker();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                SetSingle("配置", "错误");
+                SetSingle("配置错误", ex.Message);
                 return;
             }
 
@@ -94,17 +114,21 @@ namespace CustomDeskBand
 
                     var state = _tracker.Update(cur, b.Currency);
 
-                    // 符号 + 数字分列显示
-                    BalanceSymbol.Visibility = Visibility.Visible;
-                    ConsumedSymbol.Visibility = Visibility.Visible;
-                    // ConsumedLabel 可能被 SetSingle 折叠，需显式恢复
-                    ConsumedLabel.Visibility = Visibility.Visible;
-                    BalanceLabel.Text = $"{cur:N1}";
-                    ConsumedLabel.Text = $"¥ {state.ConsumedAmount:N1}";
+                    // 第一行第二列：￥ 今日消耗 / 总余额（均向上取整）
+                    BalanceLabel.Text = $"¥ {Math.Ceiling(state.ConsumedAmount):0} / {Math.Ceiling(cur):0}";
+
+                    // 第二行：余额比例 = 当前余额 / 当日基准余额
+                    double ratio = state.DailyBaseline > 0
+                        ? (double)(cur / state.DailyBaseline)
+                        : (cur > 0 ? 1 : 0);
+                    ratio = Math.Max(0, Math.Min(1, ratio));
+                    UpdateProgress(ratio);
+
                     RootGrid.ToolTip = $"总余额: ¥ {b.TotalBalance}\n" +
                                        $"赠送: ¥ {b.GrantedBalance}\n" +
                                        $"充值: ¥ {b.ToppedUpBalance}\n" +
-                                       $"今日消耗: ¥ {state.ConsumedAmount:N1}";
+                                       $"今日消耗: ¥ {state.ConsumedAmount:N1}\n" +
+                                       $"余额比例: {ratio * 100:0.#}%";
 
                 }
                 else
@@ -122,28 +146,35 @@ namespace CustomDeskBand
             }
             catch (Exception ex)
             {
-                SetSingle("未知", "错误", ex.Message);
+                SetSingle("未知错误", ex.Message);
             }
         }
 
-        private void SetSingle(string firstLine, string secondLine = null, string tooltip = null)
+        /// <summary>
+        /// 更新余额比例进度条（填充宽度 + 颜色，颜色参考电池电量百分比）
+        /// </summary>
+        private void UpdateProgress(double ratio)
         {
-            // 隐藏符号列，用标签显示状态文字（第二行可选）
-            BalanceSymbol.Visibility = Visibility.Collapsed;
-            ConsumedSymbol.Visibility = Visibility.Collapsed;
-            BalanceLabel.Text = firstLine;
-            if (secondLine != null)
-            {
-                ConsumedLabel.Visibility = Visibility.Visible;
-                ConsumedLabel.Text = secondLine;
-            }
+            _ratio = ratio;
+            ProgressFill.Width = Math.Max(0, ProgressTrack.ActualWidth * _ratio);
+
+            var percent = _ratio * 100;
+            if (percent <= 20)
+                ProgressFill.Fill = LowBrush;
+            else if (percent <= 50)
+                ProgressFill.Fill = MidBrush;
             else
-            {
-                ConsumedLabel.Visibility = Visibility.Collapsed;
-            }
-            RootGrid.ToolTip = tooltip ?? (secondLine != null ? $"{firstLine}{secondLine}" : firstLine);
+                ProgressFill.Fill = HighBrush;
         }
 
-
+        /// <summary>
+        /// 显示非数值状态（加载中 / 错误提示），进度条归零
+        /// </summary>
+        private void SetSingle(string text, string tooltip = null)
+        {
+            BalanceLabel.Text = text;
+            UpdateProgress(0);
+            RootGrid.ToolTip = tooltip ?? text;
+        }
     }
 }

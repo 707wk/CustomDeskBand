@@ -13,8 +13,9 @@ Windows 10 任务栏 DeskBand 工具集，在任务栏上直接显示 **DeepSeek
 
 ### DeepSeek 余额
 
-- 余额与当日消耗分两行显示
-- 鼠标悬停查看总余额、赠送余额、充值余额详情
+- 两行两列布局：第一行第一列为 DeepSeek Logo，第一行第二列显示 `￥ 今日消耗 / 总余额`（均向上取整）
+- 第二行为跨两列的余额比例进度条（当前余额 / 当日基准余额），颜色参考电池电量百分比：>50% 绿色、21%–50% 黄色、≤20% 红色
+- 鼠标悬停查看总余额、赠送余额、充值余额、今日消耗与余额比例详情
 - 自动记录每日基准余额，充值后智能校正消耗统计
 - API Key 与余额状态分别持久化至 `%AppData%\CustomDeskBand\` 下的 `apikey.json` 和 `balance_tracker.json`
 
@@ -73,6 +74,8 @@ CustomDeskBand/
 ├── App.config                  # 配置文件 (API Key)
 ├── DeepSeekDeskBand.xaml/.cs   # DeepSeek 余额 DeskBand
 ├── BatteryDeskBand.xaml/.cs    # 电池电量 DeskBand
+├── Resources/
+│   └── DeepSeekLogo.png        # DeepSeek Logo（嵌入到 DLL 的 WPF 资源）
 ├── Services/
 │   ├── DeepSeekService.cs      # DeepSeek API 服务
 │   └── BalanceTracker.cs       # 余额日耗追踪器

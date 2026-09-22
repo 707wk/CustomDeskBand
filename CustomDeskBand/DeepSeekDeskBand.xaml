@@ -6,56 +6,63 @@
                   SnapsToDevicePixels="True"
                   UseLayoutRounding="True">
 
+    <!-- 两行两列：第 1 行 = Logo + “￥ 今日消耗 / 总余额”，第 2 行 = 余额比例进度条（跨两列） -->
     <Grid x:Name="RootGrid"
-          ToolTip="加载中..."
+          ToolTip="加载中"
           VerticalAlignment="Center"
-          Margin="0,0,6,0">
+          Margin="4,0,6,0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="14" />
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition />
-            <RowDefinition />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- 余额行 -->
-        <TextBlock x:Name="BalanceSymbol"
-                   Grid.Row="0"
-                   Grid.Column="0"
-                   Foreground="White"
-                   FontFamily="Segoe UI, Microsoft YaHei"
-                   FontWeight="Regular"
-                   FontSize="{x:Static SystemFonts.StatusFontSize}"
-                   HorizontalAlignment="Right"
-                   Text="¥ " />
+        <!-- 第一行第一列：Logo（嵌入式资源，使用程序集限定的 pack URI） -->
+        <Image Grid.Row="0"
+               Grid.Column="0"
+               Width="16"
+               Height="16"
+               Margin="1,0,4,0"
+               VerticalAlignment="Center"
+               Stretch="Uniform"
+               RenderOptions.BitmapScalingMode="HighQuality"
+               Source="pack://application:,,,/CustomDeskBand;component/Resources/DeepSeekLogo.png" />
+
+        <!-- 第一行第二列：￥ 今日消耗 / 总余额 -->
         <TextBlock x:Name="BalanceLabel"
                    Grid.Row="0"
                    Grid.Column="1"
+                   Margin="0,0,1,0"
+                   Text="加载中"
                    Foreground="White"
                    FontFamily="Segoe UI, Microsoft YaHei"
                    FontWeight="Regular"
                    FontSize="{x:Static SystemFonts.StatusFontSize}"
-                   HorizontalAlignment="Right" />
-
-        <!-- 消耗行 -->
-        <TextBlock x:Name="ConsumedSymbol"
-                   Grid.Row="1"
-                   Grid.Column="0"
-                   Foreground="White"
-                   FontFamily="Segoe UI, Microsoft YaHei"
-                   FontWeight="Regular"
-                   FontSize="{x:Static SystemFonts.StatusFontSize}"
+                   TextTrimming="CharacterEllipsis"
                    HorizontalAlignment="Right"
-                   Text="- " />
-        <TextBlock x:Name="ConsumedLabel"
-                   Grid.Row="1"
-                   Grid.Column="1"
-                   Foreground="White"
-                   FontFamily="Segoe UI, Microsoft YaHei"
-                   FontWeight="Regular"
-                   FontSize="{x:Static SystemFonts.StatusFontSize}"
-                   HorizontalAlignment="Right" />
+                   TextAlignment="Right"
+                   VerticalAlignment="Center" />
+
+        <!-- 第二行（跨两列）：余额比例进度条，颜色参考电池电量百分比 -->
+        <Grid Grid.Row="1"
+              Grid.Column="0"
+              Grid.ColumnSpan="2"
+              Height="4"
+              Margin="0,2,0,0">
+            <Rectangle x:Name="ProgressTrack"
+                       RadiusX="2"
+                       RadiusY="2"
+                       Fill="#40FFFFFF" />
+            <Rectangle x:Name="ProgressFill"
+                       Width="0"
+                       HorizontalAlignment="Left"
+                       RadiusX="2"
+                       RadiusY="2"
+                       Fill="White" />
+        </Grid>
     </Grid>
 
 </cs:CSDeskBandWpf>
