@@ -7,7 +7,6 @@
     <AssemblyName>CustomDeskBand</AssemblyName>
     <UseWPF>true</UseWPF>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AppConfig>App.config</AppConfig>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -21,14 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Configuration" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="CSDeskBand" Version="2.1.0" />
     <PackageReference Include="CSDeskBand.Wpf" Version="2.1.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,11 +31,6 @@
     <None Include="uninstall.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- 嵌入 WPF 资源，供 DeepSeekDeskBand.xaml 通过 pack URI 引用 -->
-    <Resource Include="Resources\DeepSeekLogo.png" />
   </ItemGroup>
 
 </Project>

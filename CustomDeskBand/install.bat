@@ -35,5 +35,5 @@ for /l %%i in (1,1,15) do (
 :done
 
 echo.
-echo 完成！右键任务栏 - 工具栏 - 勾选 DeepSeek 余额
+echo 完成！右键任务栏 - 工具栏 - 勾选 电池电量
 pause
