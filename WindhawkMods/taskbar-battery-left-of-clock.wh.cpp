@@ -2,7 +2,7 @@
 // @id              taskbar-battery-left-of-clock
 // @name            任务栏电池电量(时钟左侧)
 // @description     在 Windows 10 任务栏时钟左侧显示电池电量
-// @version         1.3
+// @version         1.3.4
 // @author          wk950
 // @include         explorer.exe
 // @architecture    x86-64
@@ -35,6 +35,7 @@
   这样通知区域重新布局时, 电池窗口不会跟着托盘移动而闪烁. 使用分层窗口
   颜色键作为背景, 因此可以与任务栏背景融合.
 * 电池状态固定每 30 秒刷新一次, 刷新时刻对齐到整点 (每分的第 0 秒和第 30 秒).
+  电池百分比变化等电源事件仍会即时刷新.
 
 ## 限制
 
@@ -92,6 +93,7 @@ HWND g_tooltip = nullptr;
 HPOWERNOTIFY g_powerNotifyAcDc = nullptr;
 HPOWERNOTIFY g_powerNotifyBattery = nullptr;
 wchar_t g_tooltipText[256] = {};
+ULONGLONG g_lastTickMs = 0;
 
 struct MeterState {
     bool valid;
@@ -449,7 +451,8 @@ void ScheduleRefresh(HWND meter) {
 
     SYSTEMTIME now = {};
     GetLocalTime(&now);
-    int periodMs = kRefreshPeriodSeconds * 1000;
+
+    const int periodMs = kRefreshPeriodSeconds * 1000;
     int elapsedMs = (now.wSecond % kRefreshPeriodSeconds) * 1000 + now.wMilliseconds;
     int delayMs = periodMs - elapsedMs;
     if (delayMs <= 0) {
@@ -490,6 +493,11 @@ void EnsureMeterWindow() {
                                                         DEVICE_NOTIFY_WINDOW_HANDLE);
     g_powerNotifyBattery = RegisterPowerSettingNotification(
         meter, &kBatteryPercentageRemainingGuid, DEVICE_NOTIFY_WINDOW_HANDLE);
+    if (!g_powerNotifyAcDc || !g_powerNotifyBattery) {
+        Wh_Log(L"Battery meter: failed to register power notifications (err=%lu), acdc=%d, "
+               L"battery=%d.",
+               GetLastError(), g_powerNotifyAcDc ? 1 : 0, g_powerNotifyBattery ? 1 : 0);
+    }
     UpdateBattery();
 }
 
@@ -554,6 +562,18 @@ LRESULT CALLBACK MeterProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 1;
         case WM_TIMER:
             if (wParam == kRefreshTimerId) {
+                ULONGLONG nowTick = GetTickCount64();
+                if (g_lastTickMs != 0 &&
+                    nowTick - g_lastTickMs <
+                        static_cast<ULONGLONG>(kRefreshPeriodSeconds) * 500) {
+                    // SetTimer can fire a few milliseconds before the boundary,
+                    // which arms a second tick for the same boundary. Keep the
+                    // first one and drop the duplicate.
+                    ScheduleRefresh(hWnd);
+                    return 0;
+                }
+                g_lastTickMs = nowTick;
+
                 UpdateBattery();
                 // The timer is one-shot so that every tick lands on a boundary.
                 ScheduleRefresh(hWnd);
