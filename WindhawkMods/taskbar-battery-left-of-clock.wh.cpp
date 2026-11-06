@@ -2,7 +2,7 @@
 // @id              taskbar-battery-left-of-clock
 // @name            任务栏电池电量(时钟左侧)
 // @description     在 Windows 10 任务栏时钟左侧显示电池电量
-// @version         1.3.6
+// @version         1.3.7
 // @author          wk950
 // @include         explorer.exe
 // @architecture    x86-64
@@ -338,7 +338,9 @@ void DrawBatteryIcon(HDC dc, int x, int y, int width, int height, UINT dpi, COLO
 
 void DrawMeterContent(HWND hWnd, HDC dc, const RECT& clientRect) {
     UINT dpi = DpiOf(hWnd);
-    int iconWidth = ScaleForDpi(24, dpi);
+    // 27px keeps the inner bar area at 20px (96 DPI), so the bar width is a
+    // multiple of 10 and every 5% adds exactly 1px.
+    int iconWidth = ScaleForDpi(27, dpi);
     int iconHeight = ScaleForDpi(12, dpi);
     int gap = ScaleForDpi(4, dpi);
 
