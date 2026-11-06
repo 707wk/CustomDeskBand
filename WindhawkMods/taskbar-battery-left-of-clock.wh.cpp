@@ -2,7 +2,7 @@
 // @id              taskbar-battery-left-of-clock
 // @name            任务栏电池电量(时钟左侧)
 // @description     在 Windows 10 任务栏时钟左侧显示电池电量
-// @version         1.0
+// @version         1.2
 // @author          wk950
 // @include         explorer.exe
 // @architecture    x86-64
@@ -34,8 +34,9 @@
   布局时钟, 从而在时钟左侧预留出空间.
 * 在时钟窗口的 `WM_WINDOWPOSCHANGING` 中把宽度改回原值, 并让右边界保持不变,
   预留出的空间由本 mod 创建的电池窗口占用.
-* 电池窗口是 `TrayNotifyWnd` 的子窗口, 使用分层窗口颜色键作为背景,
-  因此可以与任务栏背景融合.
+* 电池窗口是任务栏 (`Shell_TrayWnd`) 的子窗口, 与 `TrayNotifyWnd` 并列.
+  这样通知区域重新布局时, 电池窗口不会跟着托盘移动而闪烁. 使用分层窗口
+  颜色键作为背景, 因此可以与任务栏背景融合.
 
 ## 限制
 
@@ -442,18 +443,23 @@ void DestroyMeterWindow() {
     }
 }
 
-void EnsureMeterWindow(HWND clock) {
+void EnsureMeterWindow() {
     if (IsWindow(g_meter.load())) {
         return;
     }
 
-    HWND tray = GetParent(clock);
-    if (!IsWindow(tray)) {
+    HWND taskbar = g_taskbar.load();
+    if (!IsWindow(taskbar)) {
         return;
     }
 
+    // Parent the meter to the taskbar rather than to TrayNotifyWnd. When the
+    // notification area is re-laid out (for example when a tray icon is
+    // added), a child of TrayNotifyWnd is moved together with its parent for a
+    // frame before PositionMeter gets a chance to move it back. A taskbar child
+    // keeps its position while the tray is being resized.
     HWND meter = CreateWindowExW(WS_EX_NOPARENTNOTIFY | WS_EX_LAYERED, kMeterClass, L"",
-                                 WS_CHILD | WS_CLIPSIBLINGS, 0, 0, 1, 1, tray, nullptr,
+                                 WS_CHILD | WS_CLIPSIBLINGS, 0, 0, 1, 1, taskbar, nullptr,
                                  GetModuleHandleW(nullptr), nullptr);
     if (!meter) {
         Wh_Log(L"Battery meter: failed to create meter window (%lu).", GetLastError());
@@ -483,21 +489,33 @@ void RelayoutTaskbar() {
     InvalidateRect(taskbar, nullptr, TRUE);
 }
 
-void PositionMeter() {
+bool TryGetMeterPlacement(RECT* clockRect, int* slot) {
+    if (g_stopping.load() || !g_slotAllocated.load()) {
+        return false;
+    }
+
     HWND clock = g_clock.load();
+    int reserved = g_reservedSlot.load();
+    RECT rect = {};
+    if (!IsWindow(clock) || !IsWindowVisible(clock) || reserved <= 0 ||
+        !GetWindowRect(clock, &rect) || rect.right <= rect.left || rect.bottom <= rect.top) {
+        return false;
+    }
+
+    *clockRect = rect;
+    *slot = reserved;
+    return true;
+}
+
+void PositionMeter() {
     HWND meter = g_meter.load();
-    if (!IsWindow(clock) || !IsWindow(meter)) {
+    if (!IsWindow(meter)) {
         return;
     }
 
-    if (g_stopping.load() || !g_slotAllocated.load() || !IsWindowVisible(clock)) {
-        ShowWindow(meter, SW_HIDE);
-        return;
-    }
-
-    int slot = g_reservedSlot.load();
     RECT clockRect = {};
-    if (slot <= 0 || !GetWindowRect(clock, &clockRect)) {
+    int slot = 0;
+    if (!TryGetMeterPlacement(&clockRect, &slot)) {
         ShowWindow(meter, SW_HIDE);
         return;
     }
@@ -580,7 +598,7 @@ LRESULT CALLBACK ClockSubclass(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         }
 
         if (wParam == 0) {
-            EnsureMeterWindow(hWnd);
+            EnsureMeterWindow();
             RelayoutTaskbar();
         }
         PositionMeter();
@@ -602,8 +620,23 @@ LRESULT CALLBACK ClockSubclass(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             if (nativeWidth > 0 && slot > 0 && windowPos->cx == nativeWidth + slot) {
                 // Give the reserved part back to the meter window while keeping
                 // the right edge of the clock where explorer placed it.
-                windowPos->x += slot;
+                int x = windowPos->x;
+                if (windowPos->flags & SWP_NOMOVE) {
+                    // x is undefined when SWP_NOMOVE is set, so start from the
+                    // current position instead.
+                    RECT currentRect = {};
+                    if (GetWindowRect(hWnd, &currentRect)) {
+                        POINT currentOrigin = {currentRect.left, currentRect.top};
+                        HWND parent = GetParent(hWnd);
+                        MapWindowPoints(HWND_DESKTOP, parent, &currentOrigin, 1);
+                        x = currentOrigin.x;
+                    }
+                }
+                windowPos->x = x + slot;
                 windowPos->cx = nativeWidth;
+                // Clear the flags so Windows applies the modified values even
+                // if explorer only asked to resize the clock.
+                windowPos->flags &= ~(SWP_NOMOVE | SWP_NOSIZE);
                 g_slotAllocated.store(true);
             } else if (windowPos->cx != nativeWidth) {
                 g_slotAllocated.store(false);
