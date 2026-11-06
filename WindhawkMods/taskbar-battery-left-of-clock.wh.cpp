@@ -2,7 +2,7 @@
 // @id              taskbar-battery-left-of-clock
 // @name            任务栏电池电量(时钟左侧)
 // @description     在 Windows 10 任务栏时钟左侧显示电池电量
-// @version         1.3.7
+// @version         1.3.8
 // @author          wk950
 // @include         explorer.exe
 // @architecture    x86-64
@@ -284,7 +284,7 @@ void UpdateBattery() {
 
 void DrawBatteryIcon(HDC dc, int x, int y, int width, int height, UINT dpi, COLORREF borderColor,
                      COLORREF fillColor, int percent, bool hasBattery) {
-    int capWidth = ScaleForDpi(3, dpi);
+    int capWidth = ScaleForDpi(2, dpi);
     int bodyWidth = width - capWidth;
     int borderWidth = (std::max)(1, ScaleForDpi(1, dpi));
     int corner = ScaleForDpi(4, dpi);
@@ -325,10 +325,18 @@ void DrawBatteryIcon(HDC dc, int x, int y, int width, int height, UINT dpi, COLO
     RoundRect(dc, x, y, x + bodyWidth, y + height, corner, corner);
     SelectObject(dc, oldBrush);
 
+    // Build the cap from two stacked rectangles so its outer column is one
+    // step shorter than the inner one, like the stock battery icon. A rounded
+    // RoundRect is not used here because it leaves a single protruding pixel
+    // once the cap is only a few pixels wide.
+    int capTop = y + height * 3 / 12;
+    int capBottom = y + height * 9 / 12;
+    int capStep = ScaleForDpi(1, dpi);
+    int capOuterWidth = (std::max)(1, capWidth / 2);
     HBRUSH capBrush = CreateSolidBrush(borderColor);
     oldBrush = SelectObject(dc, capBrush);
-    RoundRect(dc, x + bodyWidth, y + height * 3 / 12, x + width, y + height * 9 / 12,
-              ScaleForDpi(2, dpi), ScaleForDpi(2, dpi));
+    Rectangle(dc, x + bodyWidth, capTop, x + width - capOuterWidth, capBottom);
+    Rectangle(dc, x + width - capOuterWidth, capTop + capStep, x + width, capBottom - capStep);
     SelectObject(dc, oldBrush);
     DeleteObject(capBrush);
 
@@ -338,9 +346,9 @@ void DrawBatteryIcon(HDC dc, int x, int y, int width, int height, UINT dpi, COLO
 
 void DrawMeterContent(HWND hWnd, HDC dc, const RECT& clientRect) {
     UINT dpi = DpiOf(hWnd);
-    // 27px keeps the inner bar area at 20px (96 DPI), so the bar width is a
+    // 26px keeps the inner bar area at 20px (96 DPI), so the bar width is a
     // multiple of 10 and every 5% adds exactly 1px.
-    int iconWidth = ScaleForDpi(27, dpi);
+    int iconWidth = ScaleForDpi(26, dpi);
     int iconHeight = ScaleForDpi(12, dpi);
     int gap = ScaleForDpi(4, dpi);
 
