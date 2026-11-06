@@ -2,7 +2,7 @@
 // @id              taskbar-battery-left-of-clock
 // @name            任务栏电池电量(时钟左侧)
 // @description     在 Windows 10 任务栏时钟左侧显示电池电量
-// @version         1.2
+// @version         1.3
 // @author          wk950
 // @include         explorer.exe
 // @architecture    x86-64
@@ -14,9 +14,6 @@
 - meterWidth: 64
   $name: 电池区域宽度
   $description: 96 DPI 下的宽度, 范围 40-120. 实际宽度会按系统 DPI 缩放.
-- refreshInterval: 30
-  $name: 刷新间隔(秒)
-  $description: 定时刷新电池状态的间隔, 范围 5-300.
 */
 // ==/WindhawkModSettings==
 
@@ -37,6 +34,7 @@
 * 电池窗口是任务栏 (`Shell_TrayWnd`) 的子窗口, 与 `TrayNotifyWnd` 并列.
   这样通知区域重新布局时, 电池窗口不会跟着托盘移动而闪烁. 使用分层窗口
   颜色键作为背景, 因此可以与任务栏背景融合.
+* 电池状态固定每 30 秒刷新一次, 刷新时刻对齐到整点 (每分的第 0 秒和第 30 秒).
 
 ## 限制
 
@@ -66,7 +64,7 @@ constexpr wchar_t kMeterClass[] = L"WhTaskbarBatteryLeftOfClock";
 constexpr UINT_PTR kRefreshTimerId = 1;
 constexpr COLORREF kColorKey = RGB(1, 2, 3);
 constexpr int kDefaultMeterWidth = 64;
-constexpr int kDefaultRefreshSeconds = 30;
+constexpr int kRefreshPeriodSeconds = 30;
 
 // Power setting GUIDs, defined locally to avoid extra import libraries.
 const GUID kAcDcPowerSourceGuid = {
@@ -85,7 +83,6 @@ std::atomic<int> g_nativeClockWidth{0};
 std::atomic<int> g_reservedSlot{0};
 
 int g_meterWidth = kDefaultMeterWidth;
-int g_refreshInterval = kDefaultRefreshSeconds;
 UINT g_setupMsg = 0;
 UINT g_cleanupMsg = 0;
 HANDLE g_watchThread = nullptr;
@@ -443,6 +440,25 @@ void DestroyMeterWindow() {
     }
 }
 
+// Arms a one-shot timer that fires on the next wall-clock boundary that is a
+// multiple of kRefreshPeriodSeconds (i.e. at second 0 and 30 of every minute).
+void ScheduleRefresh(HWND meter) {
+    if (!IsWindow(meter)) {
+        return;
+    }
+
+    SYSTEMTIME now = {};
+    GetLocalTime(&now);
+    int periodMs = kRefreshPeriodSeconds * 1000;
+    int elapsedMs = (now.wSecond % kRefreshPeriodSeconds) * 1000 + now.wMilliseconds;
+    int delayMs = periodMs - elapsedMs;
+    if (delayMs <= 0) {
+        delayMs = periodMs;
+    }
+
+    SetTimer(meter, kRefreshTimerId, static_cast<UINT>(delayMs), nullptr);
+}
+
 void EnsureMeterWindow() {
     if (IsWindow(g_meter.load())) {
         return;
@@ -468,7 +484,7 @@ void EnsureMeterWindow() {
 
     SetLayeredWindowAttributes(meter, kColorKey, 0, LWA_COLORKEY);
     g_meter.store(meter);
-    SetTimer(meter, kRefreshTimerId, static_cast<UINT>(g_refreshInterval) * 1000, nullptr);
+    ScheduleRefresh(meter);
     CreateTooltip(meter);
     g_powerNotifyAcDc = RegisterPowerSettingNotification(meter, &kAcDcPowerSourceGuid,
                                                         DEVICE_NOTIFY_WINDOW_HANDLE);
@@ -539,6 +555,8 @@ LRESULT CALLBACK MeterProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
         case WM_TIMER:
             if (wParam == kRefreshTimerId) {
                 UpdateBattery();
+                // The timer is one-shot so that every tick lands on a boundary.
+                ScheduleRefresh(hWnd);
             }
             return 0;
         case WM_POWERBROADCAST:
@@ -797,9 +815,6 @@ BOOL Wh_ModInit() {
     int meterWidthSetting = Wh_GetIntSetting(L"meterWidth");
     g_meterWidth = meterWidthSetting > 0 ? std::clamp(meterWidthSetting, 40, 120)
                                          : kDefaultMeterWidth;
-    int refreshSetting = Wh_GetIntSetting(L"refreshInterval");
-    g_refreshInterval = refreshSetting > 0 ? std::clamp(refreshSetting, 5, 300)
-                                           : kDefaultRefreshSeconds;
 
     WNDCLASSW windowClass = {};
     windowClass.lpfnWndProc = MeterProc;
