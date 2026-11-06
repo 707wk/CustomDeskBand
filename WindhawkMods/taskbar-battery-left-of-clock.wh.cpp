@@ -2,7 +2,7 @@
 // @id              taskbar-battery-left-of-clock
 // @name            任务栏电池电量(时钟左侧)
 // @description     在 Windows 10 任务栏时钟左侧显示电池电量
-// @version         1.3.4
+// @version         1.3.6
 // @author          wk950
 // @include         explorer.exe
 // @architecture    x86-64
@@ -286,13 +286,43 @@ void DrawBatteryIcon(HDC dc, int x, int y, int width, int height, UINT dpi, COLO
                      COLORREF fillColor, int percent, bool hasBattery) {
     int capWidth = ScaleForDpi(3, dpi);
     int bodyWidth = width - capWidth;
-    int padding = ScaleForDpi(2, dpi);
     int borderWidth = (std::max)(1, ScaleForDpi(1, dpi));
+    int corner = ScaleForDpi(4, dpi);
+
+    // Measure the bar against the inside of the body, keeping a 1px gap
+    // between the bar and the frame like the stock battery icon. 100% fills the
+    // inner area completely and 51% covers just over half of it. Rounding
+    // instead of truncating keeps small percentages from shrinking.
+    if (hasBattery && percent > 0) {
+        int inset = borderWidth + ScaleForDpi(1, dpi);
+        int innerLeft = x + inset;
+        int innerTop = y + inset;
+        int innerRight = x + bodyWidth - inset;
+        int innerBottom = y + height - inset;
+        int innerWidth = innerRight - innerLeft;
+        int fillWidth = (innerWidth * percent + 50) / 100;
+        if (fillWidth > 0) {
+            // Clip the rectangular bar to the rounded outline so that a full
+            // battery looks filled instead of leaving gaps in the corners.
+            HRGN clipRegion = CreateRoundRectRgn(x, y, x + bodyWidth + 1, y + height + 1,
+                                                 corner + 1, corner + 1);
+            int savedDc = SaveDC(dc);
+            SelectClipRgn(dc, clipRegion);
+
+            HBRUSH fillBrush = CreateSolidBrush(fillColor);
+            RECT fillRect = {innerLeft, innerTop, innerLeft + fillWidth, innerBottom};
+            FillRect(dc, &fillRect, fillBrush);
+            DeleteObject(fillBrush);
+
+            RestoreDC(dc, savedDc);
+            DeleteObject(clipRegion);
+        }
+    }
 
     HPEN borderPen = CreatePen(PS_SOLID, borderWidth, borderColor);
     HGDIOBJ oldPen = SelectObject(dc, borderPen);
     HGDIOBJ oldBrush = SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
-    RoundRect(dc, x, y, x + bodyWidth, y + height, ScaleForDpi(4, dpi), ScaleForDpi(4, dpi));
+    RoundRect(dc, x, y, x + bodyWidth, y + height, corner, corner);
     SelectObject(dc, oldBrush);
 
     HBRUSH capBrush = CreateSolidBrush(borderColor);
@@ -301,17 +331,6 @@ void DrawBatteryIcon(HDC dc, int x, int y, int width, int height, UINT dpi, COLO
               ScaleForDpi(2, dpi), ScaleForDpi(2, dpi));
     SelectObject(dc, oldBrush);
     DeleteObject(capBrush);
-
-    if (hasBattery && percent > 0) {
-        int innerWidth = (bodyWidth - 2 * padding) * percent / 100;
-        if (innerWidth > 0) {
-            HBRUSH fillBrush = CreateSolidBrush(fillColor);
-            RECT fillRect = {x + padding, y + padding, x + padding + innerWidth,
-                             y + height - padding};
-            FillRect(dc, &fillRect, fillBrush);
-            DeleteObject(fillBrush);
-        }
-    }
 
     SelectObject(dc, oldPen);
     DeleteObject(borderPen);
